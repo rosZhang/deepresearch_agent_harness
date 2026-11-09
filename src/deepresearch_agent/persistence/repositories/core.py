@@ -144,6 +144,16 @@ class MessageRepository:
             result = await session.execute(select(MessageModel).where(MessageModel.session_id == session_id).order_by(MessageModel.created_at).limit(max(1, min(limit, 500))).offset(max(0, offset)))
             return list(result.scalars())
 
+    async def recent_for_session(self, session_id: str, *, limit: int = 12) -> list[MessageModel]:
+        """取最新的有限条消息，再按从旧到新的顺序返回，供入口路由理解最近对话。"""
+        async with self.database.sessions() as session:
+            rows = list((await session.execute(
+                select(MessageModel).where(MessageModel.session_id == session_id)
+                .order_by(MessageModel.created_at.desc(), MessageModel.message_id.desc())
+                .limit(limit)
+            )).scalars())
+            return list(reversed(rows))
+
     async def get_assistant_for_run(self, run_id: str) -> Optional[MessageModel]:
         async with self.database.sessions() as session:
             return (await session.execute(
@@ -214,6 +224,13 @@ class RunRepository:
         async with self.database.sessions() as session:
             result = await session.execute(select(RunModel).where(RunModel.session_id == session_id).order_by(RunModel.created_at.desc()).limit(max(1, min(limit, 200))).offset(max(0, offset)))
             return list(result.scalars())
+
+    async def get_by_trigger_message(self, message_id: str) -> Optional[RunModel]:
+        """通过触发消息反查研究 Run；用户消息自身的 run_id 可能为空。"""
+        async with self.database.sessions() as session:
+            return (await session.execute(
+                select(RunModel).where(RunModel.trigger_message_id == message_id)
+            )).scalar_one_or_none()
 
     async def update_status(self, run_id: str, *, status: str, current_stage: Optional[str] = None, error_code: Optional[str] = None, error_message: Optional[str] = None, usage: Optional[dict[str, Any]] = None) -> bool:
         """Persist a non-completion transition; completed uses complete_verified()."""

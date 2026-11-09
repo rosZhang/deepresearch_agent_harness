@@ -210,9 +210,7 @@ export function ChatPage({ sessionId }: {sessionId?: string}) {
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    const sourceAvailable = capabilities.data?.sources[source]?.available ?? false;
-    const resumable = run?.status === "paused" || run?.status === "pausing" || Boolean(run?.pause_requested) || pausing;
-    if (!sessionId || !text.trim() || sending || (!sourceAvailable && !resumable) || (run && !TERMINAL.includes(run.status) && !resumable)) return;
+    if (!sessionId || !text.trim() || sending) return;
     setSending(true); setError(null);
     try {
       const result = await api.send(sessionId, { client_message_id: crypto.randomUUID(), content: text.trim(), source_mode: source, workflow_mode: workflow });
@@ -353,7 +351,7 @@ export function ChatPage({ sessionId }: {sessionId?: string}) {
         >
           <div className="composer-tools"><SourceSelector value={source} onChange={setSource} capabilities={capabilities.data} /><select value={workflow} onChange={(event) => setWorkflow(event.target.value as WorkflowMode)}><option value="deep_research">DeepResearch</option><option value="plan_execute_report">Plan–Execute–Report</option></select></div>
           {source === "web" && capabilities.data?.sources.web.reason && <small className="capability-note">{capabilities.data.sources.web.reason}</small>}
-          <textarea value={text} onChange={(event) => setText(event.target.value)} onKeyDown={onComposerKeyDown} placeholder="提出一个需要证据支持的问题…" rows={3} />
+          <textarea value={text} onChange={(event) => setText(event.target.value)} onKeyDown={onComposerKeyDown} placeholder="提出研究问题，或说明要暂停、继续、取消哪个任务…" rows={3} />
           <div className="composer-actions">
             <span>{(["paused", "pausing"].includes(run?.status ?? "") || run?.pause_requested || pausing) ? "输入“继续 / 接着做 / 按计划执行”等，或点击恢复" : "Enter 发送 · Shift+Enter 换行 · 每个 Run 冻结当前来源"}</span>
             <div className="composer-control-actions">
@@ -362,9 +360,10 @@ export function ChatPage({ sessionId }: {sessionId?: string}) {
                 <button className="send" disabled={sending || !text.trim()}>{sending ? "发送中…" : "发送"}</button>
                 <button type="button" className="stop" disabled={cancelling} onClick={cancelRun}>{cancelling ? "正在取消…" : "取消"}</button>
               </> : run && !TERMINAL.includes(run.status) ? <>
+                <button className="send" disabled={sending || !text.trim()}>{sending ? "发送中…" : "发送"}</button>
                 <button type="button" className="pause" disabled={pausing || run.status === "pausing"} onClick={pauseRun}>{pausing || run.status === "pausing" ? "正在暂停…" : "暂停"}</button>
                 <button type="button" className="stop" disabled={cancelling || run.cancellation_requested} onClick={cancelRun}>{cancelling || run.cancellation_requested ? "正在取消…" : "取消"}</button>
-              </> : <button className="send" disabled={sending || !text.trim() || !(capabilities.data?.sources[source]?.available ?? false)}>{sending ? "发送中…" : "发送研究 →"}</button>}
+              </> : <button className="send" disabled={sending || !text.trim()}>{sending ? "发送中…" : "发送 →"}</button>}
             </div>
           </div>
         </motion.form>

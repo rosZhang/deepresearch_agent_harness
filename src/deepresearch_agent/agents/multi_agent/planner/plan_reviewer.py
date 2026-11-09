@@ -79,6 +79,7 @@ class PlanReviewer:
             refined_query=refined_query or original_query,
             task_graph=task_graph_json,
             assumptions=assumptions_text,
+            background_info=background_info or "无",
         )
         _LOGGER.debug("PlanReviewer prompt: %s", prompt)
         response = self._invoke_llm(prompt)

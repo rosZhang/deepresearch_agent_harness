@@ -31,6 +31,10 @@
 
 ### 1. 可恢复 Agent Harness
 
+- 聊天入口先检查 `client_message_id`，再由 LLM 单次选择 `start_research`、`resume_run`、`pause_run` 或 `cancel_run`，不运行外层 Agent 循环；路由读取最近 12 条消息、摘要及最近 20 个 Run 的目标与状态。
+- 新建研究仍使用请求指定的来源、工作流与原始问题；控制工具调用现有 RunService，检查点、研究预算和阶段状态机保持原有行为。目标不明确时显示澄清提示，路由失败不会自动创建研究任务。
+- 路由 Prompt 位于 `config/prompts/message_router_prompts.py`；`MESSAGE_ROUTER_MODEL` 留空时复用主模型，模型需支持工具调用。路由调用计入全局用量，不归入尚未确定的研究 Run；自定义工作流测试通过 `create_app(message_router=...)` 注入假路由模型。
+
 Harness Runtime 将 DeepResearch、Fusion 和多智能体 Plan–Execute–Report 工作流统一封装为持久化执行协议：
 
 - Session / Run 状态机管理会话与单次研究任务；
@@ -147,9 +151,13 @@ flowchart LR
 
 ### 6. Memory 与长会话上下文
 
+- 会话历史达到 Token 阈值时，由独立的压缩 LLM 将“旧摘要 + 新增旧消息”增量合并为摘要，近期消息保留原文；未摘要的消息不会因滑动窗口移动而被静默丢弃；
+- `CONTEXT_COMPRESSION_ENABLED` 独立于长期记忆提取开关；`CONTEXT_COMPRESSION_MODEL` 留空时依次复用 `MEMORY_LLM_MODEL`、主模型，Prompt 位于 `config/prompts/context_prompts.py`；
+- 摘要记录覆盖消息 ID，保存在 Session 的 `summary_json`；原始消息与长期 Memory 不变。长消息按压缩输入预算分批，失败时保留已有摘要及原文，无法满足硬预算时明确报错；
+- 原文窗口在阈值以下可继续增长；达到阈值后通常保留最近 `min(CONTEXT_RECENT_TURNS × 2, CONTEXT_PROTECT_RECENT_MESSAGES)` 条消息。预算不足时缩小原文窗口，超长近期报告也可纳入摘要；
 - 持久化 Curated Memory 仅保存跨 Session 有价值的原子偏好、事实、决策或经验；
 - 会话历史、Session Summary 与 FTS5 Episodic Recall 按需加载，不与长期 Memory 混为一体；
-- Query Resolver 支持代词、省略和多轮追问消歧；
+- 近期对话与当前问题分开传给 Planner / 研究 Agent，由现有模型调用理解追问；简短问题直接检索前由 LLM 改写为独立检索问题，缺少必要背景时请求澄清；
 - Memory 有来源引用、容量上限、生命周期和人工确认门禁；
 - 完整 AI 回复、研究报告、推理文本和研究证据不会被错误写入长期 Memory。
 
@@ -313,6 +321,7 @@ cp .env.example .env
 | OPENAI_API_KEY | OpenAI 兼容 API 密钥 |
 | OPENAI_BASE_URL | 模型服务地址 |
 | OPENAI_LLM_MODEL | 生成模型 |
+| MESSAGE_ROUTER_MODEL | 消息路由模型，留空时复用生成模型，需支持工具调用 |
 | OPENAI_EMBEDDINGS_MODEL | 向量模型 |
 | TAVILY_API_KEY | Web 联网模式密钥 |
 | NEO4J_URI / NEO4J_USERNAME / NEO4J_PASSWORD | 私域 GraphRAG |

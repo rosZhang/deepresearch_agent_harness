@@ -81,8 +81,11 @@ def extract_usage(response: Any) -> dict[str, int] | None:
         return None
 
     details = usage_metadata.get("input_token_details") or {}
-    # langchain-openai: input_token_details.cached（OpenAI 官方）
-    hit = details.get("cached")
+    # LangChain 标准字段：input_token_details.cache_read
+    hit = details.get("cache_read")
+    if hit is None:
+        # 兼容旧的非标准字段。
+        hit = details.get("cached")
     if hit is None:
         # DeepSeek: usage.prompt_cache_hit_tokens
         hit = raw.get("prompt_cache_hit_tokens")

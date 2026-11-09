@@ -67,17 +67,31 @@ class RunService:
         skill_repository = SkillRepository(database)
         self.skill_registry = SkillRegistry(skills_root, skill_repository)
         skill_loader = SkillLoader(self.skill_registry)
+        # Session summaries and curated Memory use separate clients and switches.
+        compression_llm = None
+        if (
+            settings.CONTEXT_COMPRESSION_ENABLED
+            and workflow_factory is None
+            and settings.OPENAI_API_KEY
+            and settings.CONTEXT_COMPRESSION_MODEL
+        ):
+            compression_llm = get_llm_model(
+                model=settings.CONTEXT_COMPRESSION_MODEL, temperature=0.0,
+                max_tokens=settings.CONTEXT_COMPRESSION_MAX_OUTPUT_TOKENS,
+            )
         self.context_builder = ContextBuilder(
             messages=self.messages, sessions=session_repository, memory_service=memory_service,
             session_search=SessionSearchService(self.messages, session_repository),
             compactor=ContextCompactor(
                 session_repository, self.messages,
+                llm=compression_llm,
                 threshold_tokens=min(
                     settings.CONTEXT_COMPRESSION_THRESHOLD_TOKENS,
                     max(100, int(settings.CONTEXT_MAX_TOKENS * settings.CONTEXT_COMPRESSION_THRESHOLD_RATIO)),
                 ),
                 protect_recent_messages=settings.CONTEXT_PROTECT_RECENT_MESSAGES,
                 target_tokens=settings.CONTEXT_COMPRESSION_TARGET_TOKENS,
+                max_input_tokens=settings.CONTEXT_COMPRESSION_MAX_INPUT_TOKENS,
             ),
             skill_loader=skill_loader,
             artifact_context_builder=ArtifactEditContextBuilder(

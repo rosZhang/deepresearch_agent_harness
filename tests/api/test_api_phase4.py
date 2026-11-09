@@ -1,13 +1,13 @@
 import json
-import json
 import time
 import uuid
 
 import pytest
 from fastapi.testclient import TestClient
+from langchain_core.messages import AIMessage
 
 from backend.app.main import create_app
-from backend.app.services.chat_service import is_resume_intent
+from backend.app.services.message_router import MessageRouter
 from backend.app.schemas import MessageCreate, RunCreate, SessionCreate
 from deepresearch_agent.agents.multi_agent.core.execution_record import ExecutionMetadata, ExecutionRecord, ToolCall
 from deepresearch_agent.agents.multi_agent.core.retrieval_result import RetrievalMetadata, RetrievalResult
@@ -15,6 +15,31 @@ from deepresearch_agent.harness import SourceMode, WorkflowMode
 from deepresearch_agent.persistence.repositories import CheckpointRepository, LearningReviewRepository, RunRepository, SessionRepository
 from deepresearch_agent.context import ArtifactEditContextBuilder
 from deepresearch_agent.evolution import SkillSpec
+
+
+class ApiRouterLlm:
+    """Script tool decisions explicitly; API tests never call an external LLM."""
+
+    def __init__(self):
+        self.action = "start_research"
+        self.run_id = None
+        self.requests = []
+        self.response = None
+        self.error = None
+
+    def bind_tools(self, tools, **kwargs):
+        self.tools = tools
+        return self
+
+    async def ainvoke(self, messages):
+        self.requests.append(messages)
+        if self.error:
+            raise self.error
+        if self.response is not None:
+            return self.response
+        return AIMessage(content="", tool_calls=[{
+            "name": self.action, "args": {"run_id": self.run_id} if self.run_id else {}, "id": "route-test",
+        }])
 
 
 class ApiFakeDriver:
@@ -69,6 +94,7 @@ def client(tmp_path):
     app = create_app(
         database_url=f"sqlite+aiosqlite:///{(tmp_path / 'api.db').as_posix()}",
         artifact_root=tmp_path / "artifacts", skills_root=tmp_path / "skills", workflow_factory=ApiFakeDriver, auto_resume=False,
+        message_router=MessageRouter(ApiRouterLlm()),
     )
     with TestClient(app) as test_client:
         yield test_client
@@ -223,6 +249,9 @@ def test_pause_and_natural_language_resume_keep_same_run(client):
     assert paused.status_code == 200 and paused.json()["status"] == "pausing"
     assert client.get(f"/api/v1/runs/{run_id}").json()["status"] == "paused"
 
+    llm = client.app.state.chat_service.router._llm
+    llm.action, llm.run_id = "resume_run", run_id
+
     resumed = client.post(f"/api/v1/sessions/{session_id}/messages", json={
         "client_message_id": str(uuid.uuid4()),
         "content": "按刚才的计划接着做吧",
@@ -255,6 +284,8 @@ def test_natural_language_resume_can_cancel_pending_pause(client):
     assert pending["status"] == "pausing"
     assert pending["current_stage"] == "planning"
     assert pending["pause_requested"] is True
+    llm = client.app.state.chat_service.router._llm
+    llm.action, llm.run_id = "resume_run", run_id
     resumed = client.post(f"/api/v1/sessions/{session_id}/messages", json={
         "client_message_id": str(uuid.uuid4()),
         "content": "继续执行",
@@ -269,12 +300,18 @@ def test_natural_language_resume_can_cancel_pending_pause(client):
     assert current["cancellation_requested"] is False
 
 
-def test_resume_intent_rejects_cancel_or_changed_task_language():
-    assert is_resume_intent("继续")
-    assert is_resume_intent("按之前的计划执行")
-    assert is_resume_intent("go on")
-    assert not is_resume_intent("不要继续")
-    assert not is_resume_intent("改为另一个主题继续研究")
+def test_new_research_is_not_forced_to_resume_paused_run(client):
+    client.app.state.run_service.schedule = lambda _run_id: None
+    session_id = new_session(client)
+    old_run = send(client, session_id).json()["run_id"]
+    assert client.post(f"/api/v1/runs/{old_run}/pause").status_code == 200
+    response = client.post(f"/api/v1/sessions/{session_id}/messages", json={
+        "client_message_id": str(uuid.uuid4()), "content": "继续讨论数据库恢复机制这个研究主题",
+        "source_mode": "graphrag",
+    })
+    assert response.status_code == 202
+    assert response.json()["created"] is True
+    assert response.json()["run_id"] != old_run
 
 
 def test_clarification_resumes_same_run(client):
@@ -343,7 +380,7 @@ def test_curated_memory_capacity_and_session_search_api(client):
 def test_ten_turn_session_survives_app_restart(tmp_path):
     database_path = (tmp_path / "ten-turn.db").as_posix()
     artifact_root = tmp_path / "ten-turn-artifacts"
-    app = create_app(database_url=f"sqlite+aiosqlite:///{database_path}", artifact_root=artifact_root, skills_root=tmp_path / "ten-turn-skills", workflow_factory=ApiFakeDriver, auto_resume=False)
+    app = create_app(database_url=f"sqlite+aiosqlite:///{database_path}", artifact_root=artifact_root, skills_root=tmp_path / "ten-turn-skills", workflow_factory=ApiFakeDriver, auto_resume=False, message_router=MessageRouter(ApiRouterLlm()))
     with TestClient(app) as first:
         session_id = new_session(first)
         run_ids = []
@@ -360,7 +397,7 @@ def test_ten_turn_session_survives_app_restart(tmp_path):
         assert len({item["run_id"] for item in detail["messages"] if item["role"] == "assistant"}) == 10
         assert all(item["status"] == "completed" for item in detail["runs"])
 
-    reopened_app = create_app(database_url=f"sqlite+aiosqlite:///{database_path}", artifact_root=artifact_root, skills_root=tmp_path / "ten-turn-skills", workflow_factory=ApiFakeDriver, auto_resume=False)
+    reopened_app = create_app(database_url=f"sqlite+aiosqlite:///{database_path}", artifact_root=artifact_root, skills_root=tmp_path / "ten-turn-skills", workflow_factory=ApiFakeDriver, auto_resume=False, message_router=MessageRouter(ApiRouterLlm()))
     with TestClient(reopened_app) as reopened:
         detail = reopened.get(f"/api/v1/sessions/{session_id}").json()
         assert len(detail["messages"]) == 20

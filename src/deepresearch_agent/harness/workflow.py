@@ -109,7 +109,7 @@ class PlanExecuteReportDriver:
             context_snapshot=runtime_snapshot,
             # Planning must reason about the user's request, not the serialized
             # system/context envelope. The latter remains available separately.
-            input=(context.resolved_query or context.original_query) + policy_prompt(self.skill_policy),
+            input=context.original_query + policy_prompt(self.skill_policy),
         )
         self.planner_result: PlannerResult | None = None
         self.report_result: ReportResult | None = None
@@ -140,6 +140,7 @@ class PlanExecuteReportDriver:
         )
         if self.planner_result.plan_spec is None:
             if self.planner_result.needs_clarification():
+                self.context.config_snapshot["clarification_question"] = "\n".join(self.planner_result.clarification.questions)
                 raise RuntimeError("needs_user_input")
             raise RuntimeError("Planner 未生成可执行 PlanSpec")
 

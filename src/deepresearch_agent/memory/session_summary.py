@@ -6,9 +6,10 @@ from deepresearch_agent.context.compactor import ContextCompactor
 class SessionSummarizer(ContextCompactor):
     """Legacy constructor mapped onto token-pressure compaction."""
 
-    def __init__(self, sessions, messages, *, threshold_messages: int = 20):
+    def __init__(self, sessions, messages, *, threshold_messages: int = 20, llm=None):
         super().__init__(
             sessions, messages,
+            llm=llm,
             threshold_tokens=max(100, threshold_messages * 10),
             protect_recent_messages=max(2, threshold_messages // 2),
         )

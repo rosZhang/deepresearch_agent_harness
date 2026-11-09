@@ -1,4 +1,4 @@
-aiohttp==3.8.5
+aiohttp>=3.10,<4
 chardet==3.0.4 
 fastapi==0.115.11
 faiss-cpu==1.11.0
@@ -40,7 +40,7 @@ uvicorn==0.29.0
 alembic>=1.13,<2.0
 aiosqlite>=0.20,<1.0
 httpx>=0.27,<1.0
-sqlalchemy>=2.0,<3.0
+sqlalchemy[asyncio]>=2.0,<3.0
 sse-starlette>=2.1,<3.0
 tavily-python>=0.5,<1.0
 tenacity>=9.0,<10.0

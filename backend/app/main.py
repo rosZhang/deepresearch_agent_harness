@@ -13,6 +13,7 @@ from fastapi.responses import JSONResponse
 
 from backend.app.api.v1 import router as api_router
 from backend.app.services import ChatService, EventStreamService, RunService
+from backend.app.services.message_router import MessageRouter
 from deepresearch_agent.config import settings
 from deepresearch_agent.harness.errors import AppError, ErrorCode
 from deepresearch_agent.persistence import Database
@@ -33,7 +34,7 @@ def _error(request: Request, *, status_code: int, code: str, message: str, retry
 def create_app(
     *, database_url: str | None = None, workflow_factory=None,
     artifact_root: str | Path | None = None, skills_root: str | Path | None = None,
-    auto_resume: bool | None = None,
+    auto_resume: bool | None = None, message_router: MessageRouter | None = None,
 ) -> FastAPI:
     if not settings.LOCAL_MVP_SINGLE_WORKER:
         raise RuntimeError("本地 MVP 必须设置 FASTAPI_WORKERS=1")
@@ -51,8 +52,11 @@ def create_app(
     app = FastAPI(title="DeepResearch HybridRAG Local MVP", version="0.4.0", lifespan=lifespan)
     app.state.database = database
     app.state.run_service = run_service
+    # 在消息入口注入单次意图路由；测试可传入带假模型的 MessageRouter。
+    # 路由默认延迟创建 LLM 客户端，不影响应用启动时的恢复逻辑。
     app.state.chat_service = ChatService(
         SessionRepository(database), RunRepository(database), MessageRepository(database), run_service,
+        router=message_router if message_router is not None else MessageRouter(),
     )
     app.state.event_stream = EventStreamService(run_service.events, run_service.runs, run_service.event_bus)
     app.state.memory_service = MemoryService(
@@ -90,6 +94,7 @@ def create_app(
             ErrorCode.NOT_FOUND: 404, ErrorCode.CONFLICT: 409, ErrorCode.IDEMPOTENCY_CONFLICT: 409,
             ErrorCode.INVALID_SOURCE_MODE: 422, ErrorCode.TAVILY_API_KEY_MISSING: 503,
             ErrorCode.SOURCE_UNAVAILABLE: 503, ErrorCode.DATABASE_UNAVAILABLE: 503,
+            ErrorCode.MESSAGE_ROUTING_FAILED: 502,
         }.get(exc.code, 400)
         return _error(request, status_code=status_code, code=exc.code.value, message=exc.message, retryable=exc.retryable, details=exc.details)
 

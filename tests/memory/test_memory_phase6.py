@@ -10,7 +10,7 @@ from deepresearch_agent.harness.contracts import ContractCheckData
 from deepresearch_agent.harness.run_context import RunContext
 from deepresearch_agent.memory import (
     ContextBuilder, EpisodicMemory, MemoryExtractor, MemoryPolicy, MemoryRejected,
-    MemoryRetriever, MemoryService, QueryResolver, SessionSummarizer,
+    MemoryRetriever, MemoryService, SessionSummarizer,
 )
 from deepresearch_agent.persistence import Database
 from deepresearch_agent.persistence.repositories import (
@@ -40,17 +40,6 @@ class FakeMemoryLlm:
         self.received = messages
         content = self.payload if isinstance(self.payload, str) else json.dumps(self.payload, ensure_ascii=False)
         return type("MemoryLlmResponse", (), {"content": content})()
-
-
-@pytest.mark.asyncio
-async def test_query_resolver_uses_only_same_session_history(database):
-    session = await new_session(database)
-    messages = MessageRepository(database)
-    first, _ = await messages.append(MessageCreate(session_id=session.session_id, role="user", content="比较国家奖学金规则", client_message_id="a"))
-    answer, _ = await messages.append(MessageCreate(session_id=session.session_id, role="assistant", content="国家奖学金有明确申请条件"))
-    resolved = QueryResolver().resolve("那上海市奖学金呢？", [first, answer])
-    assert "上海市奖学金" in resolved.resolved_query
-    assert resolved.used_message_ids == [first.message_id, answer.message_id]
 
 
 @pytest.mark.asyncio
@@ -120,10 +109,13 @@ async def test_episodic_fts_and_structured_summary_preserve_source_ids(database)
         await messages.append(MessageCreate(session_id=session.session_id, role="user" if index % 2 == 0 else "assistant", content=f"奖学金规则第{index}轮", client_message_id=f"turn-{index}" if index % 2 == 0 else None))
     hits = await EpisodicMemory(messages, RunRepository(database)).search("奖学金", session_id=session.session_id)
     assert hits and all(hit.message_id for hit in hits)
-    summary = await SessionSummarizer(SessionRepository(database), messages, threshold_messages=10).get_or_update(session.session_id)
-    assert summary["message_ids"]
+    summary = await SessionSummarizer(
+        SessionRepository(database), messages, threshold_messages=10,
+        llm=FakeMemoryLlm("讨论奖学金规则，保留已确定条件和未解决的问题。"),
+    ).get_or_update(session.session_id)
+    assert summary["covered_message_ids"]
     stored = await SessionRepository(database).get(session.session_id)
-    assert json.loads(stored.summary_json)["message_ids"] == summary["message_ids"]
+    assert json.loads(stored.summary_json)["covered_message_ids"] == summary["covered_message_ids"]
 
 
 @pytest.mark.asyncio

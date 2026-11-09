@@ -29,6 +29,15 @@ def memory_service(database, **limits):
     return MemoryService(MemoryRepository(database), AuditRepository(database), **limits)
 
 
+class FakeSummaryLlm:
+    def __init__(self):
+        self.requests = []
+
+    async def ainvoke(self, messages):
+        self.requests.append(messages)
+        return type("SummaryResponse", (), {"content": "会话摘要：保留当前目标、有效约束和最新决定。"})()
+
+
 async def create_run(database, session_id: str, content: str, client_id: str):
     return await RunRepository(database).create_for_user_message(
         MessageCreate(session_id=session_id, role="user", content=content, client_message_id=client_id),
@@ -41,7 +50,7 @@ def make_builder(database, service, *, max_tokens=4000, artifact_context_builder
     return ContextBuilder(
         messages=messages, sessions=sessions, memory_service=service,
         session_search=SessionSearchService(messages, sessions),
-        compactor=ContextCompactor(sessions, messages, threshold_tokens=1000, protect_recent_messages=4),
+        compactor=ContextCompactor(sessions, messages, llm=FakeSummaryLlm(), threshold_tokens=1000, protect_recent_messages=4),
         artifact_context_builder=artifact_context_builder,
         max_tokens=max_tokens, max_chars=16000, recent_turns=4,
     )
@@ -101,15 +110,19 @@ async def test_session_search_is_cross_session_adaptive_and_on_demand(database):
 
 
 @pytest.mark.asyncio
-async def test_token_pressure_compaction_preserves_sources_and_reversal(database):
+async def test_token_pressure_compaction_passes_reversals_to_llm_and_preserves_sources(database):
     sessions, messages = SessionRepository(database), MessageRepository(database)
     session = await sessions.create(SessionCreate(title="long"))
     contents = ["研究新能源汽车市场并生成报告", "已完成市场规模分析", "必须保留数据引用", "已完成竞争格局分析", "停止之前的国际市场任务，换个主题", "已停止国际市场部分", "现在只分析国内市场", "好的，将范围限定为国内市场"]
     for index, content in enumerate(contents):
         await messages.append(MessageCreate(session_id=session.session_id, role="user" if index % 2 == 0 else "assistant", content=content * 5, client_message_id=f"m{index}" if index % 2 == 0 else None))
-    summary = await ContextCompactor(sessions, messages, threshold_tokens=20, protect_recent_messages=2).get_or_update(session.session_id)
-    assert summary["goal"].startswith("研究新能源汽车")
-    assert summary["covered_message_ids"] and summary["superseded"]
+    llm = FakeSummaryLlm()
+    summary = await ContextCompactor(sessions, messages, llm=llm, threshold_tokens=20, protect_recent_messages=2).get_or_update(session.session_id)
+    payload = json.loads(llm.requests[0][-1].content)
+    assert payload["previous_summary"] == ""
+    assert "停止之前的国际市场任务" in str(payload["messages"])
+    assert len(payload["messages"]) == 6
+    assert summary["covered_message_ids"] == [item["message_id"] for item in payload["messages"]]
     assert json.loads((await sessions.get(session.session_id)).summary_json)["covered_message_ids"] == summary["covered_message_ids"]
 
 
@@ -155,10 +168,32 @@ async def test_context_pack_is_budgeted_and_traceable(database):
 
 
 @pytest.mark.asyncio
-async def test_unresolved_reference_requests_clarification(database):
+async def test_followup_without_history_is_deferred_to_the_research_model(database):
     session = await SessionRepository(database).create(SessionCreate(title="ambiguous"))
     trigger, run, _ = await create_run(database, session.session_id, "那一部分继续修改", "ambiguous-1")
     context = RunContext(run_id=run.run_id, session_id=session.session_id, trigger_message_id=trigger.message_id, source_mode=SourceMode.GRAPHRAG, workflow_mode=WorkflowMode.DEEP_RESEARCH, status="context_building", original_query=trigger.content)
-    with pytest.raises(ValueError, match="needs_user_input"):
-        await make_builder(database, memory_service(database)).build(context)
-    assert "clarification_question" in context.config_snapshot
+    context = await make_builder(database, memory_service(database)).build(context)
+    assert context.resolved_query == trigger.content
+    assert context.model_input.count(trigger.content) == 1
+    assert context.used_message_ids == []
+    assert "clarification_question" not in context.config_snapshot
+    assert context.context_snapshot["historical_recall_searched"] is False
+
+
+@pytest.mark.asyncio
+async def test_followup_keeps_recent_dialogue_separate_from_current_question(database):
+    sessions, messages = SessionRepository(database), MessageRepository(database)
+    session = await sessions.create(SessionCreate(title="followup"))
+    first, _ = await messages.append(MessageCreate(session_id=session.session_id, role="user", content="介绍混合检索", client_message_id="first"))
+    answer, _ = await messages.append(MessageCreate(session_id=session.session_id, role="assistant", content="混合检索结合关键词和向量检索"))
+    trigger, run, _ = await create_run(database, session.session_id, "它有哪些局限？", "followup")
+    context = await make_builder(database, memory_service(database)).build(RunContext(
+        run_id=run.run_id, session_id=session.session_id, trigger_message_id=trigger.message_id,
+        source_mode=SourceMode.GRAPHRAG, workflow_mode=WorkflowMode.DEEP_RESEARCH,
+        status="context_building", original_query=trigger.content,
+    ))
+    assert context.resolved_query == "它有哪些局限？"
+    assert context.used_message_ids == [first.message_id, answer.message_id]
+    assert context.model_input.count(answer.content) == 1
+    assert context.model_input.count(trigger.content) == 1
+    assert "基于同一会话的已知上下文" not in context.model_input

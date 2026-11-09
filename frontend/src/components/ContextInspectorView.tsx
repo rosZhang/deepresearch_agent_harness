@@ -34,10 +34,11 @@ function BlockList({ title, blocks }: { title: string; blocks: ContextBlock[] })
 
 function SummaryView({ summary }: { summary: Record<string, unknown> }) {
   const groups = ["decisions", "verified_facts", "completed", "unresolved", "constraints", "superseded"];
-  if (!Object.keys(summary).length) return <div className="drawer-empty compact">当前对话未达到压缩阈值，无结构化摘要。</div>;
+  if (!Object.keys(summary).length) return <div className="drawer-empty compact">当前没有历史摘要，未压缩的消息保留在对话窗口中。</div>;
   return <div className="summary-grid">
+    {typeof summary.content === "string" && <div className="summary-item wide"><strong>历史摘要</strong><p>{summary.content}</p></div>}
     {typeof summary.goal === "string" && <div className="summary-item wide"><strong>目标</strong><p>{summary.goal}</p></div>}
-    {groups.map((name) => {
+    {groups.filter((name) => Array.isArray(summary[name])).map((name) => {
       const values = Array.isArray(summary[name]) ? summary[name] as Array<unknown> : [];
       return <div className="summary-item" key={name}><strong>{name}</strong><span>{values.length}</span>
         {values.slice(0, 4).map((value, index) => <p key={index}>{typeof value === "string" ? value : String((value as Record<string, unknown>).text ?? JSON.stringify(value))}</p>)}
@@ -85,7 +86,7 @@ export function ContextInspectorView({ context }: { context?: ContextInspector |
     </details>
 
     <details className="context-group">
-      <summary><strong>结构化压缩摘要</strong><span>{Object.keys(context.session_summary).length ? "已生成" : "未触发"}</span></summary>
+      <summary><strong>历史摘要</strong><span>{Object.keys(context.session_summary).length ? "已生成" : "未触发"}</span></summary>
       <SummaryView summary={context.session_summary} />
     </details>
 

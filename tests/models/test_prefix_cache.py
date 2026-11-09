@@ -42,10 +42,10 @@ def _clean_run_contextvar():
 
 # ---------- usage 字段提取（兼容多网关命名） ----------
 
-def _usage_metadata(*, input_tokens: int, output_tokens: int, cached: int | None = None) -> dict:
+def _usage_metadata(*, input_tokens: int, output_tokens: int, cache_read: int | None = None) -> dict:
     details: dict = {}
-    if cached is not None:
-        details["cached"] = cached
+    if cache_read is not None:
+        details["cache_read"] = cache_read
     return {
         "input_tokens": input_tokens,
         "output_tokens": output_tokens,
@@ -57,10 +57,30 @@ def _usage_metadata(*, input_tokens: int, output_tokens: int, cached: int | None
 def test_extract_usage_langchain_openai_shape() -> None:
     response = AIMessage(
         content="ok",
-        usage_metadata=_usage_metadata(input_tokens=100, output_tokens=20, cached=80),
+        usage_metadata=_usage_metadata(input_tokens=100, output_tokens=20, cache_read=80),
     )
     assert extract_usage(response) == {
         "requests": 1, "input_tokens": 100, "hit_tokens": 80, "miss_tokens": 20, "output_tokens": 20,
+    }
+
+
+def test_extract_usage_legacy_cached_field() -> None:
+    metadata = _usage_metadata(input_tokens=100, output_tokens=20)
+    metadata["input_token_details"] = {"cached": 80}
+    response = AIMessage(content="ok", usage_metadata=metadata)
+    assert extract_usage(response)["hit_tokens"] == 80
+
+
+def test_extract_usage_zero_cache_read_takes_precedence() -> None:
+    metadata = _usage_metadata(input_tokens=100, output_tokens=20, cache_read=0)
+    metadata["input_token_details"]["cached"] = 80
+    response = AIMessage(
+        content="ok",
+        usage_metadata=metadata,
+        response_metadata={"token_usage": {"prompt_cache_hit_tokens": 90}},
+    )
+    assert extract_usage(response) == {
+        "requests": 1, "input_tokens": 100, "hit_tokens": 0, "miss_tokens": 100, "output_tokens": 20,
     }
 
 
@@ -252,7 +272,11 @@ async def test_context_builder_puts_stable_content_first(database) -> None:
     item = await service.create_candidate(content="会话恢复使用 CheckpointManager", scope="project", kind="fact", provenance_refs=["message:m1"], confidence=0.9, session_id=session.session_id)
     await service.update(item.memory_id, status="active")
 
-    builder = ContextBuilder(messages, EpisodicMemory(messages, runs), MemoryRetriever(repository), SessionSummarizer(sessions, messages), max_chars=6000)
+    class SummaryLlm:
+        async def ainvoke(self, messages):
+            return AIMessage(content="讨论 SQLite 会话持久化，待继续分析恢复机制。")
+
+    builder = ContextBuilder(messages, EpisodicMemory(messages, runs), MemoryRetriever(repository), SessionSummarizer(sessions, messages, llm=SummaryLlm()), max_chars=6000)
     context = await builder.build(RunContext(
         run_id=run.run_id, session_id=session.session_id, trigger_message_id=trigger.message_id,
         source_mode=SourceMode.GRAPHRAG, workflow_mode=WorkflowMode.DEEP_RESEARCH,

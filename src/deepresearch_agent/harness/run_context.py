@@ -18,6 +18,8 @@ class RunContext(BaseModel):
     workflow_mode: WorkflowMode
     status: RunStatus
     original_query: str
+    # Legacy checkpoint field; ContextBuilder now keeps the original query here.
+    # Planning/research models interpret history, and direct retrieval contextualizes its own query.
     resolved_query: Optional[str] = None
     plan_version: int = 0
     checkpoint_version: int = 0

@@ -47,7 +47,7 @@ class TaskDecomposer:
         self._llm = llm or get_llm_model()
         self._max_tasks = max_tasks
 
-    def decompose(self, query: str, *, source_mode: str = "graphrag") -> TaskDecompositionResult:
+    def decompose(self, query: str, *, source_mode: str = "graphrag", background_info: Optional[str] = None) -> TaskDecompositionResult:
         """
         根据查询生成TaskGraph
 
@@ -60,6 +60,7 @@ class TaskDecomposer:
         prompt = TASK_DECOMPOSE_PROMPT.format(
             query=query,
             max_tasks=self._max_tasks,
+            background_info=background_info or "无",
         )
         if source_mode == "web":
             prompt += (

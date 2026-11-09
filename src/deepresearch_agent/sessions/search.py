@@ -44,8 +44,8 @@ class SessionSearchService:
         self.messages, self.sessions = messages, sessions
 
     @classmethod
-    def should_search(cls, query: str, *, unresolved_reference: bool = False) -> bool:
-        return unresolved_reference or bool(cls.HISTORY_SIGNAL.search(query))
+    def should_search(cls, query: str) -> bool:
+        return bool(cls.HISTORY_SIGNAL.search(query))
 
     @staticmethod
     def _view(item, *, anchor_id: str | None = None) -> dict:
