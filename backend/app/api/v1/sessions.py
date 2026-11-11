@@ -6,7 +6,8 @@ from fastapi import APIRouter, Depends, Query, Response, status
 from sqlalchemy import select
 
 from backend.app.dependencies import get_chat_service, get_database
-from backend.app.schemas import MessageSend, SessionCreate, SessionPatch
+from deepresearch_agent.persistence.schemas import SessionCreate
+from backend.app.schemas import MessageSend, SessionPatch
 from deepresearch_agent.harness.errors import AppError, ErrorCode
 from deepresearch_agent.persistence.repositories import MessageRepository, RunRepository, SessionRepository
 from deepresearch_agent.persistence.models import MessageModel, RunEventModel, RunModel, ToolCallModel

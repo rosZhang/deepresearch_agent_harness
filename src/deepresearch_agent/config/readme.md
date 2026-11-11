@@ -144,9 +144,9 @@ with get_db_manager() as manager:
 
 以下提示暂未迁入 `config/prompts/`，原因是它们在运行时需要根据上下文动态拼装大段内容，或与复杂流程紧密耦合，拆分会显著增加代码复杂度：
 
-- `deepresearch_agent/search/tool/deep_research_tool.py:1190`：答案修复 `fix_prompt` 直接插入实时 question/answer 详情，并在异步修复流程中内联调用。
-- `deepresearch_agent/search/tool/deeper_research_tool.py:844` 与 `1975`：`enhanced_prompt` 会在执行过程中不断串接检索片段、知识图谱摘要、社区洞察等多段文本，属流式构造。
-- `deepresearch_agent/search/tool/reasoning/community_enhance.py:278`、`chain_of_exploration.py:185/479`、`evidence.py:377`：这些推理工具按步骤动态拼接指南、路径和证据描述，难以抽象为单一模板。
+- `deepresearch_agent/workflows/deep_research/research.py:1190`：答案修复 `fix_prompt` 直接插入实时 question/answer 详情，并在异步修复流程中内联调用。
+- `deepresearch_agent/workflows/deep_research/enhanced.py:844` 与 `1975`：`enhanced_prompt` 会在执行过程中不断串接检索片段、知识图谱摘要、社区洞察等多段文本，属流式构造。
+- `deepresearch_agent/workflows/deep_research/reasoning/community_enhance.py:278`、`chain_of_exploration.py:185/479`、`evidence.py:377`：这些推理工具按步骤动态拼接指南、路径和证据描述，难以抽象为单一模板。
 - `deepresearch_agent/evaluation/metrics/*`（`answer_metrics.py`, `deep_search_metrics.py`, `retrieval_metrics.py`, `graph_metrics.py`, `llm_metrics.py` 等）：评估流程会针对不同指标拼接问题、候选答案、引用片段，且存在多层 fallback 逻辑，暂维持本地定义以避免引入大量模板分支。
 
 ## 核心API接口

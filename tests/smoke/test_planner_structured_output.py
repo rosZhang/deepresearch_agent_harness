@@ -1,8 +1,8 @@
 import pytest
 
-from deepresearch_agent.agents.multi_agent.planner.clarifier import Clarifier
-from deepresearch_agent.agents.multi_agent.planner.plan_reviewer import PlanReviewer
-from deepresearch_agent.agents.multi_agent.planner.task_decomposer import TaskDecomposer
+from deepresearch_agent.workflows.multi_agent.planner.clarifier import Clarifier
+from deepresearch_agent.workflows.multi_agent.planner.plan_reviewer import PlanReviewer
+from deepresearch_agent.workflows.multi_agent.planner.task_decomposer import TaskDecomposer
 
 
 class RecordingLLM:

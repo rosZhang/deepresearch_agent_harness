@@ -389,7 +389,9 @@ cd frontend
 npm run build
 ~~~
 
-当前完整后端回归：**134 passed**；前端 TypeScript 类型检查与生产构建通过。
+本次结构重构后的完整后端回归为 **197 passed、2 failed**（重构前为 194 passed、2 failed）。
+两项原有失败来自缺失的
+`docs/acceptance/acceptance-matrix.md` / `scenario-template.md`，与运行代码无关。
 
 ### 系统量化评测
 
@@ -415,7 +417,7 @@ python scripts/evaluate_runs.py --labels evals/system/cases.json --retrieval-k 1
 |---|---|---|
 | GET | /api/v1/health | 系统与依赖健康检查 |
 | POST/GET | /api/v1/sessions | 创建或查询会话 |
-| POST | /api/v1/sessions/{id}/messages | 发送消息并创建 Run |
+| POST | /api/v1/sessions/{id}/messages | 发送消息，由 LLM 路由创建、恢复、暂停或取消 Run |
 | GET | /api/v1/sessions/{id}/whiteboard | 全链路白板日志 |
 | GET | /api/v1/runs/{id} | Run 状态、阶段与预算 |
 | GET | /api/v1/runs/{id}/events | Durable SSE 事件流 |
@@ -435,19 +437,27 @@ python scripts/evaluate_runs.py --labels evals/system/cases.json --retrieval-k 1
 
 ~~~text
 .
-├── backend/                         # FastAPI API 与 Run 调度
+├── backend/app/
+│   ├── main.py                      # HTTP 应用、路由、中间件与生命周期
+│   ├── bootstrap.py                 # 集中装配 Repository、LLM、Context 与 Service
+│   ├── api/v1/                      # HTTP 接口
+│   ├── schemas/                     # 仅 HTTP 请求与响应类型
+│   └── services/                    # 消息路由、Run 调度控制、事件推送
 ├── frontend/                        # React 研究画板、白板、Memory、Skills
 ├── src/deepresearch_agent/
 │   ├── harness/                     # Runtime、状态机、预算、恢复、Contract
-│   ├── agents/multi_agent/          # Planner、Worker、Reflection、Reporter
-│   ├── context/                     # 上下文块、预算与可信边界
-│   ├── memory/                      # Curated Memory、摘要与历史召回
+│   ├── workflows/
+│   │   ├── deep_research/           # Driver、Agent、标准/增强研究循环与推理辅助
+│   │   └── multi_agent/             # Driver、Planner、Worker、Reflection、Reporter
+│   ├── context/                     # 唯一上下文构建入口、LLM 摘要与近期原文窗口
+│   ├── sessions/                    # 会话历史检索与按需召回
+│   ├── memory/                      # 长期记忆存储、检索与提取
 │   ├── evolution/                   # Skill 蒸馏、评测、Promote、回滚
 │   ├── evaluation/                  # Agent 与检索评测
-│   ├── persistence/                 # SQLite、Repository、Artifact、Migration
+│   ├── persistence/                 # 共享 schemas、SQLite、Repository、Artifact
 │   ├── retrieval/                   # GraphRAG / Web Provider
 │   ├── graph/                       # 知识图谱构建与 Community
-│   └── search/                      # DeepResearch 检索工具
+│   └── search/                      # 底层 GraphRAG 搜索工具和工具注册表
 ├── tests/                           # Harness、API、Memory、Evolution、E2E
 ├── evals/                           # Gold Evidence 与 Judge 标签
 ├── docs/                            # 设计、上下文工程与评测报告
@@ -456,6 +466,16 @@ python scripts/evaluate_runs.py --labels evals/system/cases.json --retrieval-k 1
 ├── data/                            # SQLite 与 Artifact 运行数据
 └── docker-compose.yaml
 ~~~
+
+阅读主链建议：`main.create_app` → `bootstrap.build_services` → `ChatService.send`
+→ `MessageRouter.route` → `RunService.schedule` → `HarnessRuntime.execute_run`
+→ 对应工作流的 `driver.py`。
+
+`bootstrap` 只负责创建和连接依赖，`RunService` 接收这些依赖并调度任务；
+每个 Run 的 Runtime 与研究 Agent 在执行时创建，结束后关闭。
+HTTP 层、Harness 与 Repository 共用 `persistence.schemas`，核心包不再导入 `backend`。
+旧的 `harness.workflow`、`agents.multi_agent`、`agents.deep_research_agent` 和
+`memory.context_builder/session_summary` 已迁移，仓库内调用统一使用新路径，不保留转发空壳。
 
 ## 设计原则
 

@@ -11,8 +11,8 @@ from deepresearch_agent.search.tool.local_search_tool import LocalSearchTool
 from deepresearch_agent.search.tool.global_search_tool import GlobalSearchTool
 from deepresearch_agent.search.tool.hybrid_tool import HybridSearchTool
 from deepresearch_agent.search.tool.naive_search_tool import NaiveSearchTool
-from deepresearch_agent.search.tool.deep_research_tool import DeepResearchTool
-from deepresearch_agent.search.tool.deeper_research_tool import DeeperResearchTool
+from deepresearch_agent.workflows.deep_research.research import DeepResearchTool
+from deepresearch_agent.workflows.deep_research.enhanced import DeeperResearchTool
 from deepresearch_agent.search.tool.chain_exploration_tool import ChainOfExplorationTool
 from deepresearch_agent.search.tool.hypothesis_tool import HypothesisGeneratorTool
 from deepresearch_agent.search.tool.validation_tool import AnswerValidationTool

@@ -15,7 +15,7 @@ from deepresearch_agent.config.prompts import (
 )
 from deepresearch_agent.config.settings import gl_description, response_type, HYBRID_SEARCH_SETTINGS
 from deepresearch_agent.search.tool.base import BaseSearchTool
-from deepresearch_agent.agents.multi_agent.core.retrieval_result import RetrievalResult
+from deepresearch_agent.workflows.multi_agent.core.retrieval_result import RetrievalResult
 from deepresearch_agent.search.retrieval_adapter import (
     create_retrieval_metadata,
     create_retrieval_result,

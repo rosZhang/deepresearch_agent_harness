@@ -4,7 +4,8 @@ import asyncio
 import json
 from weakref import WeakValueDictionary
 
-from backend.app.schemas import MessageCreate, MessageSend, RunAccepted, RunCreate
+from deepresearch_agent.persistence.schemas import MessageCreate, RunCreate
+from backend.app.schemas import MessageSend, RunAccepted
 from backend.app.services.message_router import MessageRouter, RoutingDecision
 from deepresearch_agent.config.settings import HARNESS_BUDGETS, LEARNING_REVIEW_MODEL, OPENAI_LLM_MODEL
 from deepresearch_agent.harness.errors import AppError, ErrorCode

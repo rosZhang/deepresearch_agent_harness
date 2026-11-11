@@ -1,15 +1,5 @@
-"""Public persistence DTOs shared by repositories and the future API layer."""
+"""HTTP 请求和响应的数据类型；持久化 DTO 位于 deepresearch_agent.persistence.schemas。"""
 
-from .persistence import (
-    CheckpointRead,
-    MessageCreate,
-    MessageRead,
-    RunCreate,
-    RunEventCreate,
-    RunRead,
-    SessionCreate,
-    SessionRead,
-)
 from .api import (
     ClarificationSubmit,
     ErrorBody,
@@ -24,14 +14,6 @@ from .api import (
 )
 
 __all__ = [
-    "CheckpointRead",
-    "MessageCreate",
-    "MessageRead",
-    "RunCreate",
-    "RunEventCreate",
-    "RunRead",
-    "SessionCreate",
-    "SessionRead",
     "ClarificationSubmit",
     "ErrorBody",
     "ErrorResponse",

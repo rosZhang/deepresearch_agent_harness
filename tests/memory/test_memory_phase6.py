@@ -3,14 +3,15 @@ import json
 import pytest
 import pytest_asyncio
 
-from backend.app.schemas import MessageCreate, RunCreate, SessionCreate
+from deepresearch_agent.persistence.schemas import MessageCreate, RunCreate, SessionCreate
 from deepresearch_agent.harness import SourceMode, WorkflowMode
 from deepresearch_agent.harness.checkpoints import CheckpointManager
 from deepresearch_agent.harness.contracts import ContractCheckData
 from deepresearch_agent.harness.run_context import RunContext
+from deepresearch_agent.context import ContextBuilder, ContextCompactor
+from deepresearch_agent.sessions import EpisodicMemory, SessionSearchService
 from deepresearch_agent.memory import (
-    ContextBuilder, EpisodicMemory, MemoryExtractor, MemoryPolicy, MemoryRejected,
-    MemoryRetriever, MemoryService, SessionSummarizer,
+    MemoryExtractor, MemoryPolicy, MemoryRejected, MemoryRetriever, MemoryService,
 )
 from deepresearch_agent.persistence import Database
 from deepresearch_agent.persistence.repositories import (
@@ -109,8 +110,8 @@ async def test_episodic_fts_and_structured_summary_preserve_source_ids(database)
         await messages.append(MessageCreate(session_id=session.session_id, role="user" if index % 2 == 0 else "assistant", content=f"奖学金规则第{index}轮", client_message_id=f"turn-{index}" if index % 2 == 0 else None))
     hits = await EpisodicMemory(messages, RunRepository(database)).search("奖学金", session_id=session.session_id)
     assert hits and all(hit.message_id for hit in hits)
-    summary = await SessionSummarizer(
-        SessionRepository(database), messages, threshold_messages=10,
+    summary = await ContextCompactor(
+        SessionRepository(database), messages, threshold_tokens=100, protect_recent_messages=5,
         llm=FakeMemoryLlm("讨论奖学金规则，保留已确定条件和未解决的问题。"),
     ).get_or_update(session.session_id)
     assert summary["covered_message_ids"]
@@ -128,9 +129,13 @@ async def test_context_builder_is_bounded_and_checkpointed_as_working_memory(dat
         RunCreate(session_id=session.session_id, trigger_message_id="atomic", source_mode=SourceMode.GRAPHRAG, workflow_mode=WorkflowMode.DEEP_RESEARCH),
     )
     memory_repository = MemoryRepository(database)
-    builder = ContextBuilder(messages, EpisodicMemory(messages, runs), MemoryRetriever(memory_repository), SessionSummarizer(sessions, messages), max_chars=2200)
+    builder = ContextBuilder(
+        messages=messages, sessions=sessions, memory_service=MemoryService(memory_repository, AuditRepository(database)),
+        session_search=SessionSearchService(messages, sessions), compactor=ContextCompactor(sessions, messages),
+        max_chars=2200,
+    )
     context = await builder.build(RunContext(run_id=run.run_id, session_id=session.session_id, trigger_message_id=trigger.message_id, source_mode=SourceMode.GRAPHRAG, workflow_mode=WorkflowMode.DEEP_RESEARCH, status="context_building", original_query=trigger.content))
-    assert context.used_message_ids and len(json.dumps(context.context_snapshot, ensure_ascii=False)) <= 2200
+    assert context.used_message_ids and len(context.model_input) <= 2200
     manager = CheckpointManager(CheckpointRepository(database))
     await manager.save(context, "context_building")
     restored = await manager.restore(run.run_id)

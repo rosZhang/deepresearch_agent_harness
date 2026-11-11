@@ -3,7 +3,7 @@ import json
 import pytest
 import pytest_asyncio
 
-from backend.app.schemas import MessageCreate, RunCreate, RunEventCreate, SessionCreate
+from deepresearch_agent.persistence.schemas import MessageCreate, RunCreate, RunEventCreate, SessionCreate
 from deepresearch_agent.evolution import (
     PromotionPolicy, PromotionRejected, SkillEvaluator, SkillLinter, SkillLoader,
     SkillRegistry, SkillSpec, TrajectoryDistiller,

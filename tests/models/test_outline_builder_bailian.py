@@ -3,8 +3,8 @@ from __future__ import annotations
 import pytest
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
-from deepresearch_agent.agents.multi_agent.reporter import outline_builder as module
-from deepresearch_agent.agents.multi_agent.reporter.outline_builder import OutlineBuilder
+from deepresearch_agent.workflows.multi_agent.reporter import outline_builder as module
+from deepresearch_agent.workflows.multi_agent.reporter.outline_builder import OutlineBuilder
 
 
 class _FakeLLM:

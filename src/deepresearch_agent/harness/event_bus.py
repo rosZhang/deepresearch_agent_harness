@@ -6,7 +6,7 @@ import inspect
 from collections import defaultdict
 from typing import Any, Awaitable, Callable, DefaultDict
 
-from backend.app.schemas import RunEventCreate
+from deepresearch_agent.persistence.schemas import RunEventCreate
 from deepresearch_agent.persistence.repositories import EventRepository
 
 Subscriber = Callable[[Any], Awaitable[None] | None]

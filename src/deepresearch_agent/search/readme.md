@@ -4,42 +4,29 @@
 
 ## 目录结构
 
-```
+```text
 deepresearch_agent/search/
-├── __init__.py                  # 模块初始化文件，导出主要类和工具类
-├── local_search.py              # 本地搜索实现，基于向量检索的社区内精确查询
-├── global_search.py             # 全局搜索实现，基于Map-Reduce模式的跨社区查询
-├── utils.py                     # 向量工具类，提供余弦相似度计算和向量排序等功能
-├── tool_registry.py             # 工具注册表，集中管理所有搜索工具类
-├── retrieval_adapter.py         # 检索结果适配器，统一转换为RetrievalResult格式
-└── tool/                        # 搜索工具集合目录
-    ├── __init__.py              # 工具初始化文件
-    ├── base.py                  # 搜索工具基类，提供通用功能
-    ├── local_search_tool.py     # 本地搜索工具实现
-    ├── global_search_tool.py    # 全局搜索工具实现
-    ├── hybrid_tool.py           # 混合搜索工具实现，结合局部和全局搜索
-    ├── naive_search_tool.py     # 简单搜索工具实现，仅使用向量搜索
-    ├── deep_research_tool.py    # 深度研究工具实现，支持多步骤思考-搜索-推理
-    ├── deeper_research_tool.py  # 增强版深度研究工具，添加社区感知和知识图谱功能
-    ├── chain_exploration_tool.py # 链式探索工具，封装ChainOfExplorationSearcher为LangChain工具
-    ├── hypothesis_tool.py       # 假设生成工具，针对复杂问题生成多种分析假设
-    ├── validation_tool.py       # 答案验证工具，基于关键词和错误模式检测评估答案质量
-    ├── deeper_research/         # 增强版深度研究辅助模块目录
-    │   ├── __init__.py          # 辅助模块初始化
-    │   ├── enhancer.py          # 搜索增强功能，如CoE增强搜索
-    │   └── branching.py         # 分支推理功能，包括多分支创建、矛盾检测和引用生成
-    └── reasoning/               # 推理相关组件目录
-        ├── __init__.py          # 推理组件初始化
-        ├── nlp.py               # 自然语言处理工具
-        ├── prompts.py           # 提示模板
-        ├── thinking.py          # 思考引擎，管理多轮迭代思考过程
-        ├── search.py            # 推理搜索实现，包含QueryGenerator
-        ├── validator.py         # 答案验证器，评估答案长度、相关性与可用性
-        ├── community_enhance.py # 社区感知搜索增强器
-        ├── kg_builder.py        # 动态知识图谱构建器
-        ├── evidence.py          # 证据链收集和推理跟踪
-        └── chain_of_exploration.py # 链式探索搜索实现
+├── local_search.py              # 本地检索
+├── global_search.py             # 全局检索
+├── utils.py
+├── tool_registry.py             # 注册检索工具，也引用 workflows 中的研究工具
+├── retrieval_adapter.py
+└── tool/
+    ├── base.py
+    ├── local_search_tool.py
+    ├── global_search_tool.py
+    ├── hybrid_tool.py
+    ├── naive_search_tool.py
+    ├── chain_exploration_tool.py
+    ├── hypothesis_tool.py
+    └── validation_tool.py
 ```
+
+DeepResearch 的 Agent、Driver 和研究循环已集中到 `workflows/deep_research/`：
+`research.py` 是标准研究循环，`enhanced.py` 是增强研究循环，
+`reasoning/` 和 `enhancement/` 保存它们使用的推理辅助实现。
+下文的研究工具说明对应这些新位置。
+
 
 ## 实现思路
 

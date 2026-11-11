@@ -10,7 +10,7 @@ _SRC = Path(__file__).resolve().parent / "src"
 if str(_SRC) not in sys.path:
     sys.path.insert(0, str(_SRC))
 
-from deepresearch_agent.agents.deep_research_agent import DeepResearchAgent
+from deepresearch_agent.workflows.deep_research.agent import DeepResearchAgent
 from deepresearch_agent.agents.fusion_agent import FusionGraphRAGAgent
 from deepresearch_agent.harness.contracts import SourceMode
 from deepresearch_agent.harness.contracts import WorkflowMode

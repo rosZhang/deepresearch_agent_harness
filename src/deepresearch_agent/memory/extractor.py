@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field, ValidationError
 
 from deepresearch_agent.persistence.repositories import ContractRepository, MessageRepository, RunRepository
 
-from .curated import MemoryRejected, MemoryService
+from .service import MemoryRejected, MemoryService
 
 
 class MemoryCandidateProposal(BaseModel):

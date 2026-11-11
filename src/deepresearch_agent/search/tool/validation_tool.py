@@ -3,7 +3,7 @@ import re
 
 from langchain_core.tools import BaseTool
 
-from deepresearch_agent.search.tool.reasoning.validator import AnswerValidator
+from deepresearch_agent.workflows.deep_research.reasoning.validator import AnswerValidator
 
 
 class AnswerValidationTool:

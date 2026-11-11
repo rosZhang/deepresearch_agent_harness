@@ -7,7 +7,7 @@ from datetime import datetime
 from typing import Any, Dict, Iterable, List, Optional, Sequence
 import uuid
 
-from deepresearch_agent.agents.multi_agent.core.retrieval_result import (
+from deepresearch_agent.workflows.multi_agent.core.retrieval_result import (
     RetrievalMetadata,
     RetrievalResult,
 )

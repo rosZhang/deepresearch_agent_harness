@@ -3,7 +3,7 @@ from typing import Any, Dict, List
 from langchain_core.tools import BaseTool
 
 from deepresearch_agent.models.get_models import get_llm_model
-from deepresearch_agent.search.tool.reasoning.search import QueryGenerator
+from deepresearch_agent.workflows.deep_research.reasoning.search import QueryGenerator
 from deepresearch_agent.config.prompts import SUB_QUERY_PROMPT, FOLLOWUP_QUERY_PROMPT
 
 

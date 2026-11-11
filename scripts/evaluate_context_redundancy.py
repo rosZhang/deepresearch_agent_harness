@@ -15,9 +15,9 @@ if str(PROJECT_ROOT) not in sys.path:
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
-from deepresearch_agent.agents.multi_agent.core.retrieval_result import RetrievalResult
-from deepresearch_agent.agents.multi_agent.reporter.evidence_cards import EvidenceCardPipeline
-from deepresearch_agent.agents.multi_agent.reporter.outline_builder import ReportOutline, SectionOutline
+from deepresearch_agent.workflows.multi_agent.core.retrieval_result import RetrievalResult
+from deepresearch_agent.workflows.multi_agent.reporter.evidence_cards import EvidenceCardPipeline
+from deepresearch_agent.workflows.multi_agent.reporter.outline_builder import ReportOutline, SectionOutline
 from deepresearch_agent.context.tokens import count_tokens
 
 

@@ -9,7 +9,7 @@ from typing import Any, Optional
 from sqlalchemy import and_, func, or_, select, text, update
 from sqlalchemy.exc import IntegrityError
 
-from backend.app.schemas import MessageCreate, RunCreate, RunEventCreate, SessionCreate
+from deepresearch_agent.persistence.schemas import MessageCreate, RunCreate, RunEventCreate, SessionCreate
 from deepresearch_agent.harness.errors import AppError, ErrorCode
 from deepresearch_agent.harness.versioning import EVENT_SCHEMA_VERSION
 from deepresearch_agent.persistence.database import Database

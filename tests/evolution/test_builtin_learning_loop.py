@@ -3,7 +3,7 @@ import json
 import pytest
 import pytest_asyncio
 
-from backend.app.schemas import MessageCreate, RunCreate, SessionCreate
+from deepresearch_agent.persistence.schemas import MessageCreate, RunCreate, SessionCreate
 from deepresearch_agent.evolution import PromotionPolicy, SkillEvaluator, SkillLearningService, SkillRegistry, SkillSpec
 from deepresearch_agent.evolution.review_agents import _normalize_skill_proposal
 from deepresearch_agent.evolution.review_schema import ReviewPack, SkillProposal
@@ -11,7 +11,7 @@ from deepresearch_agent.evolution.validators import ProposalValidators
 from deepresearch_agent.harness import SourceMode, WorkflowMode
 from deepresearch_agent.harness.contracts import ContractCheckData
 from deepresearch_agent.harness.run_context import RunContext
-from deepresearch_agent.harness.workflow import PlanExecuteReportDriver
+from deepresearch_agent.workflows.multi_agent.driver import PlanExecuteReportDriver
 from deepresearch_agent.persistence import Database
 from deepresearch_agent.persistence.models import ToolCallModel
 from deepresearch_agent.persistence.repositories import (

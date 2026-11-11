@@ -8,9 +8,9 @@ from langchain_core.messages import AIMessage
 
 from backend.app.main import create_app
 from backend.app.services.message_router import MessageRouter
-from backend.app.schemas import MessageCreate, RunCreate, SessionCreate
-from deepresearch_agent.agents.multi_agent.core.execution_record import ExecutionMetadata, ExecutionRecord, ToolCall
-from deepresearch_agent.agents.multi_agent.core.retrieval_result import RetrievalMetadata, RetrievalResult
+from deepresearch_agent.persistence.schemas import MessageCreate, RunCreate, SessionCreate
+from deepresearch_agent.workflows.multi_agent.core.execution_record import ExecutionMetadata, ExecutionRecord, ToolCall
+from deepresearch_agent.workflows.multi_agent.core.retrieval_result import RetrievalMetadata, RetrievalResult
 from deepresearch_agent.harness import SourceMode, WorkflowMode
 from deepresearch_agent.persistence.repositories import CheckpointRepository, LearningReviewRepository, RunRepository, SessionRepository
 from deepresearch_agent.context import ArtifactEditContextBuilder

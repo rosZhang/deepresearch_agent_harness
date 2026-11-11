@@ -253,6 +253,3 @@ class ContextCompactor:
     async def get_or_update(self, session_id: str) -> dict:
         """Compatibility entry point for callers that only need the summary."""
         return (await self.prepare(session_id)).summary
-
-
-SessionSummarizer = ContextCompactor

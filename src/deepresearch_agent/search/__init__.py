@@ -13,7 +13,7 @@ _EXPORTS = {
     "GlobalSearchTool": ("deepresearch_agent.search.tool.global_search_tool", "GlobalSearchTool"),
     "HybridSearchTool": ("deepresearch_agent.search.tool.hybrid_tool", "HybridSearchTool"),
     "NaiveSearchTool": ("deepresearch_agent.search.tool.naive_search_tool", "NaiveSearchTool"),
-    "DeepResearchTool": ("deepresearch_agent.search.tool.deep_research_tool", "DeepResearchTool"),
+    "DeepResearchTool": ("deepresearch_agent.workflows.deep_research.research", "DeepResearchTool"),
 }
 
 __all__ = list(_EXPORTS)

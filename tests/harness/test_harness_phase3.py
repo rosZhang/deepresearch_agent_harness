@@ -3,9 +3,9 @@ import json
 import pytest
 import pytest_asyncio
 
-from backend.app.schemas import MessageCreate, RunCreate, SessionCreate
-from deepresearch_agent.agents.multi_agent.core.execution_record import ExecutionMetadata, ExecutionRecord, ToolCall
-from deepresearch_agent.agents.multi_agent.core.retrieval_result import RetrievalMetadata, RetrievalResult
+from deepresearch_agent.persistence.schemas import MessageCreate, RunCreate, SessionCreate
+from deepresearch_agent.workflows.multi_agent.core.execution_record import ExecutionMetadata, ExecutionRecord, ToolCall
+from deepresearch_agent.workflows.multi_agent.core.retrieval_result import RetrievalMetadata, RetrievalResult
 from deepresearch_agent.harness import RunStatus, SourceMode, WorkflowMode
 from deepresearch_agent.harness.budgets import BudgetExceeded, BudgetLimits, BudgetManager
 from deepresearch_agent.harness.checkpoints import CheckpointManager
@@ -285,7 +285,7 @@ def test_token_usage_total_does_not_double_count_provider_total():
 
 @pytest.mark.asyncio
 async def test_web_deep_research_bypasses_answer_cache_and_replan_reexecutes():
-    from deepresearch_agent.harness.workflow import DeepResearchDriver
+    from deepresearch_agent.workflows.deep_research.driver import DeepResearchDriver
 
     class Agent:
         def __init__(self):
@@ -317,7 +317,7 @@ def test_real_deep_research_agent_ask_accepts_and_forwards_bypass_cache(monkeypa
     DeepResearchAgent 重写 ask() 时未转发参数导致的 TypeError。
     """
     from deepresearch_agent.agents.base import BaseAgent
-    from deepresearch_agent.agents.deep_research_agent import DeepResearchAgent
+    from deepresearch_agent.workflows.deep_research.agent import DeepResearchAgent
 
     # 仅构造最小实例，避免 __init__ 初始化 DeepResearchTool 的外部依赖
     agent = DeepResearchAgent.__new__(DeepResearchAgent)

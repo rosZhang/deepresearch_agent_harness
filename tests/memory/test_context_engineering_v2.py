@@ -3,7 +3,7 @@ import json
 import pytest
 import pytest_asyncio
 
-from backend.app.schemas import MessageCreate, RunCreate, SessionCreate
+from deepresearch_agent.persistence.schemas import MessageCreate, RunCreate, SessionCreate
 from deepresearch_agent.context import ArtifactEditContextBuilder, ContextBuilder, ContextCompactor
 from deepresearch_agent.harness import SourceMode, WorkflowMode
 from deepresearch_agent.harness.contracts import ContractCheckData

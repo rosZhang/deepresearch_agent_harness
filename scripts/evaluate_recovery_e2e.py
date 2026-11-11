@@ -34,13 +34,13 @@ if str(PROJECT_ROOT) not in sys.path:
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
-from backend.app.schemas import MessageCreate, RunCreate, SessionCreate
-from deepresearch_agent.agents.multi_agent.core.execution_record import (
+from deepresearch_agent.persistence.schemas import MessageCreate, RunCreate, SessionCreate
+from deepresearch_agent.workflows.multi_agent.core.execution_record import (
     ExecutionMetadata,
     ExecutionRecord,
     ToolCall,
 )
-from deepresearch_agent.agents.multi_agent.core.retrieval_result import (
+from deepresearch_agent.workflows.multi_agent.core.retrieval_result import (
     RetrievalMetadata,
     RetrievalResult,
 )

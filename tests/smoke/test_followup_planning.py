@@ -5,10 +5,11 @@ import json
 import pytest
 from langchain_core.messages import AIMessage
 
-from deepresearch_agent.agents.multi_agent.core.state import PlanExecuteState
-from deepresearch_agent.agents.multi_agent.planner.base_planner import BasePlanner
+from deepresearch_agent.workflows.multi_agent.core.state import PlanExecuteState
+from deepresearch_agent.workflows.multi_agent.planner.base_planner import BasePlanner
 from deepresearch_agent.harness.run_context import RunContext
-from deepresearch_agent.harness.workflow import DeepResearchDriver, PlanExecuteReportDriver
+from deepresearch_agent.workflows.deep_research.driver import DeepResearchDriver
+from deepresearch_agent.workflows.multi_agent.driver import PlanExecuteReportDriver
 
 
 class ScriptedLLM:

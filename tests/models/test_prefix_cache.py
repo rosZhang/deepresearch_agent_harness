@@ -6,17 +6,13 @@ import pytest
 import pytest_asyncio
 from langchain_core.messages import AIMessage
 
-from backend.app.schemas import MessageCreate, RunCreate, SessionCreate
+from deepresearch_agent.persistence.schemas import MessageCreate, RunCreate, SessionCreate
 from deepresearch_agent.harness import SourceMode, WorkflowMode
 from deepresearch_agent.harness.budgets import BudgetUsage
 from deepresearch_agent.harness.run_context import RunContext
-from deepresearch_agent.memory import (
-    ContextBuilder,
-    EpisodicMemory,
-    MemoryRetriever,
-    MemoryService,
-    SessionSummarizer,
-)
+from deepresearch_agent.context import ContextBuilder, ContextCompactor
+from deepresearch_agent.memory import MemoryService
+from deepresearch_agent.sessions import SessionSearchService
 from deepresearch_agent.models.prefix_cache import (
     PrefixCacheTracker,
     extract_usage,
@@ -266,7 +262,7 @@ async def test_context_builder_puts_stable_content_first(database) -> None:
         MessageCreate(session_id=session.session_id, role="user", content="那恢复机制呢？", client_message_id="current"),
         RunCreate(session_id=session.session_id, trigger_message_id="atomic", source_mode=SourceMode.GRAPHRAG, workflow_mode=WorkflowMode.DEEP_RESEARCH),
     )
-    # 一条已激活的语义记忆，应出现在变量区（查询之后）
+    # 一条已激活的长期记忆，应出现在稳定前缀中。
     repository = MemoryRepository(database)
     service = MemoryService(repository, AuditRepository(database))
     item = await service.create_candidate(content="会话恢复使用 CheckpointManager", scope="project", kind="fact", provenance_refs=["message:m1"], confidence=0.9, session_id=session.session_id)
@@ -276,7 +272,11 @@ async def test_context_builder_puts_stable_content_first(database) -> None:
         async def ainvoke(self, messages):
             return AIMessage(content="讨论 SQLite 会话持久化，待继续分析恢复机制。")
 
-    builder = ContextBuilder(messages, EpisodicMemory(messages, runs), MemoryRetriever(repository), SessionSummarizer(sessions, messages, llm=SummaryLlm()), max_chars=6000)
+    builder = ContextBuilder(
+        messages=messages, sessions=sessions, memory_service=service,
+        session_search=SessionSearchService(messages, sessions),
+        compactor=ContextCompactor(sessions, messages, llm=SummaryLlm(), threshold_tokens=200), max_chars=6000,
+    )
     context = await builder.build(RunContext(
         run_id=run.run_id, session_id=session.session_id, trigger_message_id=trigger.message_id,
         source_mode=SourceMode.GRAPHRAG, workflow_mode=WorkflowMode.DEEP_RESEARCH,
@@ -284,13 +284,12 @@ async def test_context_builder_puts_stable_content_first(database) -> None:
     ))
 
     text = context.model_input
-    # 稳定区在前：摘要 -> 历史背景
-    summary_pos = text.find("# 会话摘要")
-    history_pos = text.find("# 会话历史背景")
+    # 稳定的长期记忆在前，随后是摘要、近期原文和当前问题。
+    summary_pos = text.find("# SESSION SUMMARY")
+    history_pos = text.find("# RECENT SESSION MESSAGES")
     assert summary_pos >= 0 and history_pos > summary_pos
-    # 变量区在后：消解后的查询、记忆都排在历史背景之后
+    # 当前问题单独位于历史之后，长期记忆保持在稳定前缀中。
     query_pos = text.find(context.resolved_query)
-    memory_pos = text.find("经用户确认的相关 Memory")
+    memory_pos = text.find("CheckpointManager")
     assert query_pos > history_pos
-    assert memory_pos > query_pos
-    assert "CheckpointManager" in text[memory_pos:]
+    assert 0 <= memory_pos < summary_pos

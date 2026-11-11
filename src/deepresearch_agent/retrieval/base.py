@@ -7,7 +7,7 @@ import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Literal, Optional, Protocol, Sequence
 
-from deepresearch_agent.agents.multi_agent.core.retrieval_result import RetrievalResult
+from deepresearch_agent.workflows.multi_agent.core.retrieval_result import RetrievalResult
 from deepresearch_agent.harness.contracts import SourceMode
 from deepresearch_agent.harness.errors import AppError, ErrorCode
 

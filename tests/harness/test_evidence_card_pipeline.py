@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from deepresearch_agent.agents.multi_agent.core.retrieval_result import RetrievalResult
-from deepresearch_agent.agents.multi_agent.reporter.evidence_cards import EvidenceCardPipeline
-from deepresearch_agent.agents.multi_agent.reporter.outline_builder import ReportOutline, SectionOutline
+from deepresearch_agent.workflows.multi_agent.core.retrieval_result import RetrievalResult
+from deepresearch_agent.workflows.multi_agent.reporter.evidence_cards import EvidenceCardPipeline
+from deepresearch_agent.workflows.multi_agent.reporter.outline_builder import ReportOutline, SectionOutline
 from deepresearch_agent.harness.contracts import SourceMode
 from deepresearch_agent.harness.verifiers.deterministic import DeterministicVerifiers
 

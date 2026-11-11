@@ -4,7 +4,7 @@ import pytest
 import pytest_asyncio
 from pydantic import ValidationError
 
-from backend.app.schemas import MessageCreate, RunCreate, RunEventCreate, SessionCreate
+from deepresearch_agent.persistence.schemas import MessageCreate, RunCreate, RunEventCreate, SessionCreate
 from deepresearch_agent.harness import SourceMode, WorkflowMode
 from deepresearch_agent.persistence import ArtifactStore, Database
 from deepresearch_agent.persistence.trajectory_exporter import TrajectoryExporter

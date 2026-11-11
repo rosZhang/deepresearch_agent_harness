@@ -6,7 +6,7 @@ import asyncio
 import re
 from typing import Any, Mapping, Optional
 
-from deepresearch_agent.agents.multi_agent.core.retrieval_result import RetrievalResult
+from deepresearch_agent.workflows.multi_agent.core.retrieval_result import RetrievalResult
 from deepresearch_agent.harness.contracts import SourceMode
 from deepresearch_agent.harness.policies import SourcePolicy
 from deepresearch_agent.retrieval.base import SearchDepth, SearchFilters, ToolCallContext

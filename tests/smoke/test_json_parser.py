@@ -1,4 +1,4 @@
-from deepresearch_agent.agents.multi_agent.tools.json_parser import parse_json_text
+from deepresearch_agent.workflows.multi_agent.tools.json_parser import parse_json_text
 
 
 def test_parse_json_text_ignores_thinking_object_before_fenced_payload():

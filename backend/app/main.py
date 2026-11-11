@@ -12,16 +12,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from backend.app.api.v1 import router as api_router
-from backend.app.services import ChatService, EventStreamService, RunService
+from backend.app.bootstrap import build_services
 from backend.app.services.message_router import MessageRouter
 from deepresearch_agent.config import settings
 from deepresearch_agent.harness.errors import AppError, ErrorCode
-from deepresearch_agent.persistence import Database
-from deepresearch_agent.persistence.repositories import MessageRepository, RunRepository, SessionRepository
-from deepresearch_agent.memory import MemoryService
-from deepresearch_agent.persistence.repositories import AuditRepository, MemoryRepository
-from deepresearch_agent.persistence.repositories import LearningReviewRepository, SkillRepository
-from deepresearch_agent.evolution import PromotionPolicy, SkillEvaluator
 
 
 def _error(request: Request, *, status_code: int, code: str, message: str, retryable: bool = False, details=None):
@@ -38,8 +32,11 @@ def create_app(
 ) -> FastAPI:
     if not settings.LOCAL_MVP_SINGLE_WORKER:
         raise RuntimeError("本地 MVP 必须设置 FASTAPI_WORKERS=1")
-    database = Database(database_url or settings.APP_DATABASE_URL)
-    run_service = RunService(database, workflow_factory=workflow_factory, artifact_root=artifact_root or settings.ARTIFACT_ROOT, skills_root=skills_root or settings.SKILLS_ROOT)
+    services = build_services(
+        database_url=database_url, workflow_factory=workflow_factory,
+        artifact_root=artifact_root, skills_root=skills_root, message_router=message_router,
+    )
+    database, run_service = services.database, services.run_service
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
@@ -52,33 +49,10 @@ def create_app(
     app = FastAPI(title="DeepResearch HybridRAG Local MVP", version="0.4.0", lifespan=lifespan)
     app.state.database = database
     app.state.run_service = run_service
-    # 在消息入口注入单次意图路由；测试可传入带假模型的 MessageRouter。
-    # 路由默认延迟创建 LLM 客户端，不影响应用启动时的恢复逻辑。
-    app.state.chat_service = ChatService(
-        SessionRepository(database), RunRepository(database), MessageRepository(database), run_service,
-        router=message_router if message_router is not None else MessageRouter(),
-    )
-    app.state.event_stream = EventStreamService(run_service.events, run_service.runs, run_service.event_bus)
-    app.state.memory_service = MemoryService(
-        MemoryRepository(database), AuditRepository(database),
-        user_max_tokens=settings.MEMORY_USER_MAX_TOKENS,
-        project_max_tokens=settings.MEMORY_PROJECT_MAX_TOKENS,
-        user_max_chars=settings.MEMORY_USER_MAX_CHARS,
-        project_max_chars=settings.MEMORY_PROJECT_MAX_CHARS,
-    )
-    skill_repository = SkillRepository(database)
-    app.state.skill_services = {
-        "repository": skill_repository,
-        "registry": run_service.skill_registry,
-        "evaluator": SkillEvaluator(skill_repository, case_runner=run_service.run_evaluation_case if workflow_factory is None else None),
-        "promotion": run_service.skill_promotion if workflow_factory is None else PromotionPolicy(
-            skill_repository, run_service.skill_registry, AuditRepository(database),
-        ),
-        "learning": run_service.skill_learning,
-        "reviews": LearningReviewRepository(database),
-        "events": run_service.event_bus,
-        "test_mode": workflow_factory is not None,
-    }
+    app.state.chat_service = services.chat_service
+    app.state.event_stream = services.event_stream
+    app.state.memory_service = services.memory_service
+    app.state.skill_services = services.skill_services
     app.add_middleware(CORSMiddleware, allow_origins=list(settings.FRONTEND_ORIGINS), allow_credentials=False, allow_methods=["*"], allow_headers=["*"])
 
     @app.middleware("http")

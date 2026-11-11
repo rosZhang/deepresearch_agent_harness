@@ -4,7 +4,7 @@ from typing import Any, AsyncGenerator, Dict, Optional, Tuple
 
 from deepresearch_agent.config.settings import AGENT_SETTINGS
 
-from deepresearch_agent.agents.multi_agent.integration.legacy_facade import MultiAgentFacade
+from deepresearch_agent.workflows.multi_agent.facade import MultiAgentFacade
 from deepresearch_agent.harness.contracts import SourceMode
 from deepresearch_agent.retrieval.base import RetrievalProvider
 

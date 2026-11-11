@@ -6,7 +6,7 @@ import hashlib
 import re
 from typing import Iterable, Optional
 
-from deepresearch_agent.agents.multi_agent.core.retrieval_result import RetrievalResult
+from deepresearch_agent.workflows.multi_agent.core.retrieval_result import RetrievalResult
 from deepresearch_agent.harness.contracts import EvidenceData, SourceMode
 from deepresearch_agent.persistence.repositories.trajectory import EvidenceRepository
 

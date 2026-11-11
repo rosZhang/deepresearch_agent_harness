@@ -4,10 +4,10 @@ from pathlib import Path
 
 import pytest
 
-from deepresearch_agent.agents.multi_agent.core.plan_spec import PlanExecutionSignal, TaskNode
-from deepresearch_agent.agents.multi_agent.core.retrieval_result import RetrievalMetadata, RetrievalResult
-from deepresearch_agent.agents.multi_agent.core.state import PlanExecuteState
-from deepresearch_agent.agents.multi_agent.executor.retrieval_executor import RetrievalExecutor
+from deepresearch_agent.workflows.multi_agent.core.plan_spec import PlanExecutionSignal, TaskNode
+from deepresearch_agent.workflows.multi_agent.core.retrieval_result import RetrievalMetadata, RetrievalResult
+from deepresearch_agent.workflows.multi_agent.core.state import PlanExecuteState
+from deepresearch_agent.workflows.multi_agent.executor.retrieval_executor import RetrievalExecutor
 from deepresearch_agent.harness.contracts import SourceMode
 from deepresearch_agent.harness.errors import AppError, ErrorCode
 from deepresearch_agent.harness.policies import SourcePolicy
@@ -15,9 +15,9 @@ from deepresearch_agent.retrieval.base import SearchFilters, TimeoutBoundProvide
 from deepresearch_agent.retrieval.graphrag_provider import GraphRAGProvider
 from deepresearch_agent.retrieval.router import RetrievalRouter
 from deepresearch_agent.retrieval.tavily_provider import TavilyProvider
-from deepresearch_agent.search.tool.deep_research_tool import DeepResearchTool
-from deepresearch_agent.agents.multi_agent.planner.task_decomposer import TaskDecomposer
-from deepresearch_agent.agents.multi_agent.reporter.formatter import CitationFormatter
+from deepresearch_agent.workflows.deep_research.research import DeepResearchTool
+from deepresearch_agent.workflows.multi_agent.planner.task_decomposer import TaskDecomposer
+from deepresearch_agent.workflows.multi_agent.reporter.formatter import CitationFormatter
 
 
 class FakeProvider:
@@ -290,7 +290,7 @@ def test_web_deep_research_disables_vector_cache_initialization(monkeypatch):
         "deepresearch_agent.cache_manager.manager.get_cache_embedding_provider",
         fail_if_initialized,
     )
-    from deepresearch_agent.agents.deep_research_agent import DeepResearchAgent
+    from deepresearch_agent.workflows.deep_research.agent import DeepResearchAgent
 
     agent = DeepResearchAgent(
         use_deeper_tool=True,

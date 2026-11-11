@@ -11,7 +11,7 @@ from deepresearch_agent.search.retrieval_adapter import (
     results_from_relationships,
     results_to_payload,
 )
-from deepresearch_agent.search.tool.reasoning.chain_of_exploration import ChainOfExplorationSearcher
+from deepresearch_agent.workflows.deep_research.reasoning.chain_of_exploration import ChainOfExplorationSearcher
 
 
 class ChainOfExplorationTool:

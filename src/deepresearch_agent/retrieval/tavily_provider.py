@@ -14,7 +14,7 @@ from typing import Any, Optional
 
 from tavily import TavilyClient
 
-from deepresearch_agent.agents.multi_agent.core.retrieval_result import RetrievalMetadata, RetrievalResult
+from deepresearch_agent.workflows.multi_agent.core.retrieval_result import RetrievalMetadata, RetrievalResult
 from deepresearch_agent.config.settings import CACHE_DIR
 from deepresearch_agent.harness.contracts import SourceMode
 from deepresearch_agent.harness.errors import AppError, ErrorCode

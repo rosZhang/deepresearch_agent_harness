@@ -5,9 +5,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from backend.app.schemas import MessageCreate, RunCreate, SessionCreate
-from deepresearch_agent.agents.deep_research_agent import DeepResearchAgent
-from deepresearch_agent.agents.multi_agent.integration.multi_agent_factory import MultiAgentFactory
+from deepresearch_agent.persistence.schemas import MessageCreate, RunCreate, SessionCreate
+from deepresearch_agent.workflows.deep_research.agent import DeepResearchAgent
+from deepresearch_agent.workflows.multi_agent.factory import MultiAgentFactory
 from deepresearch_agent.config.settings import APP_DATABASE_URL, ARTIFACT_ROOT, HARNESS_BUDGETS
 from deepresearch_agent.persistence import ArtifactStore, Database
 from deepresearch_agent.persistence.repositories import (
@@ -18,7 +18,8 @@ from deepresearch_agent.retrieval.router import create_default_router
 
 from .contracts import SourceMode, WorkflowMode
 from .runtime import HarnessRuntime
-from .workflow import DeepResearchDriver, PlanExecuteReportDriver
+from deepresearch_agent.workflows.deep_research.driver import DeepResearchDriver
+from deepresearch_agent.workflows.multi_agent.driver import PlanExecuteReportDriver
 
 
 @dataclass

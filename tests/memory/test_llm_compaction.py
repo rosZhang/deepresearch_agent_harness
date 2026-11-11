@@ -7,7 +7,7 @@ import pytest
 import pytest_asyncio
 from langchain_core.messages import AIMessage
 
-from backend.app.schemas import MessageCreate, RunCreate, SessionCreate
+from deepresearch_agent.persistence.schemas import MessageCreate, RunCreate, SessionCreate
 from deepresearch_agent.context import ContextBuilder, ContextCompactor
 from deepresearch_agent.context.compactor import ContextCompactionError
 from deepresearch_agent.context.tokens import count_tokens
@@ -242,7 +242,7 @@ async def test_context_contains_summary_plus_complete_raw_tail_without_memory_wr
 
 @pytest.mark.asyncio
 async def test_compression_client_is_independent_of_memory_extraction(setup, monkeypatch, tmp_path):
-    from backend.app.services import run_service as module
+    from backend.app import bootstrap as module
 
     database, *_ = setup
     llm = SummaryLlm()
@@ -258,14 +258,18 @@ async def test_compression_client_is_independent_of_memory_extraction(setup, mon
     monkeypatch.setattr(module.settings, "CONTEXT_COMPRESSION_ENABLED", True)
     monkeypatch.setattr(module.settings, "MEMORY_BACKGROUND_REVIEW_ENABLED", False)
     monkeypatch.setattr(module.settings, "LEARNING_REVIEW_ENABLED", False)
-    service = module.RunService(database, artifact_root=tmp_path / "artifacts", skills_root=tmp_path / "skills")
-    assert service.memory_extractor is None
-    assert service.context_builder.compactor.llm is llm
+    services = module.build_services(database_url=database.url, artifact_root=tmp_path / "artifacts", skills_root=tmp_path / "skills")
+    with services.run_service._runtime_factory() as service:
+        assert service.memory_extractor is None
+        assert service.context_builder.compactor.llm is llm
     assert created == [{"model": "compression-model", "temperature": 0.0,
                         "max_tokens": module.settings.CONTEXT_COMPRESSION_MAX_OUTPUT_TOKENS}]
     monkeypatch.setattr(module.settings, "CONTEXT_COMPRESSION_ENABLED", False)
-    disabled = module.RunService(database, artifact_root=tmp_path / "artifacts", skills_root=tmp_path / "skills")
-    assert disabled.context_builder.compactor.llm is None and len(created) == 1
+    disabled = module.build_services(database_url=database.url, artifact_root=tmp_path / "artifacts", skills_root=tmp_path / "skills")
+    with disabled.run_service._runtime_factory() as runtime:
+        assert runtime.context_builder.compactor.llm is None and len(created) == 1
+    await services.database.close()
+    await disabled.database.close()
 
 
 @pytest.mark.asyncio
